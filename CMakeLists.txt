@@ -18,7 +18,7 @@ ament_auto_add_executable(track_node
   src/trackNode.cpp
 )
 ament_auto_add_executable(servo_node
-  src/servoNode.cpp
+  src/controlNode.cpp
 )
 
 ament_auto_package()
