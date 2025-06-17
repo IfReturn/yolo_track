@@ -16,9 +16,11 @@ ament_auto_find_build_dependencies()
 
 ament_auto_add_executable(track_node
   src/trackNode.cpp
+  src/sysfsControl.cpp
 )
-ament_auto_add_executable(servo_node
-  src/controlNode.cpp
-)
+# ament_auto_add_executable(servo_node
+#   src/controlNode.cpp
+#   src/sysfsControl.cpp
+# )
 
 ament_auto_package()
