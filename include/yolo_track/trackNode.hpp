@@ -41,7 +41,6 @@ class trackNode : public rclcpp::Node {
   std::string current_track_id_{};
 
   // PWM/GPIO control
-  SysfsControl sysfs_ctrl_;
   bool use_hard_pwm_ = true;
   int pwm_chip_ = 0;
   int pwm_channel_ = 0;

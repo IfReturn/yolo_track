@@ -1,12 +1,7 @@
 #include <memory>
 #include <sensor_msgs/msg/image.hpp>
 #include <yolo_msgs/msg/detection.hpp>
-#include <yolo_msgs/msg/detection_array.hpp>
 #include <yolo_track/trackNode.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <yolo_msgs/msg/detection.hpp>
-#include <yolo_track/sysfsControl.hpp>
-#include <rclcpp/parameter.hpp>
 #include <thread>
 #include <chrono>
 
@@ -39,21 +34,21 @@ trackNode::trackNode() : Node("yolo_track_node") {
   pwm_period_ns_ = this->get_parameter("pwm_period_ns").as_int();
   min_duty_ns_ = this->get_parameter("min_duty_ns").as_int();
   max_duty_ns_ = this->get_parameter("max_duty_ns").as_int();
-
+  
   if (use_hard_pwm_) {
-    sysfs_ctrl_.export_pwm(pwm_chip_, pwm_channel_x_);
-    sysfs_ctrl_.export_pwm(pwm_chip_, pwm_channel_y_);
-    sysfs_ctrl_.set_pwm_period(pwm_chip_, pwm_channel_x_, pwm_period_ns_);
-    sysfs_ctrl_.set_pwm_period(pwm_chip_, pwm_channel_y_, pwm_period_ns_);
-    sysfs_ctrl_.set_pwm_duty_cycle(pwm_chip_, pwm_channel_x_, 1500000);
-    sysfs_ctrl_.set_pwm_duty_cycle(pwm_chip_, pwm_channel_y_, 1500000);
-    sysfs_ctrl_.enable_pwm(pwm_chip_, pwm_channel_x_, true);
-    sysfs_ctrl_.enable_pwm(pwm_chip_, pwm_channel_y_, true);
+    SysfsControl::export_pwm(pwm_chip_, pwm_channel_x_);
+    SysfsControl::export_pwm(pwm_chip_, pwm_channel_y_);
+    SysfsControl::set_pwm_period(pwm_chip_, pwm_channel_x_, pwm_period_ns_);
+    SysfsControl::set_pwm_period(pwm_chip_, pwm_channel_y_, pwm_period_ns_);
+    SysfsControl::set_pwm_duty_cycle(pwm_chip_, pwm_channel_x_, 1500000);
+    SysfsControl::set_pwm_duty_cycle(pwm_chip_, pwm_channel_y_, 1500000);
+    SysfsControl::enable_pwm(pwm_chip_, pwm_channel_x_, true);
+    SysfsControl::enable_pwm(pwm_chip_, pwm_channel_y_, true);
   } else {
-    sysfs_ctrl_.export_gpio(gpio_x_);
-    sysfs_ctrl_.export_gpio(gpio_y_);
-    sysfs_ctrl_.set_gpio_direction(gpio_x_, "out");
-    sysfs_ctrl_.set_gpio_direction(gpio_y_, "out");
+    SysfsControl::export_gpio(gpio_x_);
+    SysfsControl::export_gpio(gpio_y_);
+    SysfsControl::set_gpio_direction(gpio_x_, "out");
+    SysfsControl::set_gpio_direction(gpio_y_, "out");
     running_ = true;
     soft_pwm_thread_x_ = std::thread(&trackNode::soft_pwm_loop, this, gpio_x_, &duty_x_);
     soft_pwm_thread_y_ = std::thread(&trackNode::soft_pwm_loop, this, gpio_y_, &duty_y_);
@@ -81,13 +76,13 @@ trackNode::~trackNode() {
   if (soft_pwm_thread_x_.joinable()) soft_pwm_thread_x_.join();
   if (soft_pwm_thread_y_.joinable()) soft_pwm_thread_y_.join();
   if (use_hard_pwm_) {
-    sysfs_ctrl_.enable_pwm(pwm_chip_, pwm_channel_x_, false);
-    sysfs_ctrl_.enable_pwm(pwm_chip_, pwm_channel_y_, false);
-    sysfs_ctrl_.unexport_pwm(pwm_chip_, pwm_channel_x_);
-    sysfs_ctrl_.unexport_pwm(pwm_chip_, pwm_channel_y_);
+    SysfsControl::enable_pwm(pwm_chip_, pwm_channel_x_, false);
+    SysfsControl::enable_pwm(pwm_chip_, pwm_channel_y_, false);
+    SysfsControl::unexport_pwm(pwm_chip_, pwm_channel_x_);
+    SysfsControl::unexport_pwm(pwm_chip_, pwm_channel_y_);
   } else {
-    sysfs_ctrl_.unexport_gpio(gpio_x_);
-    sysfs_ctrl_.unexport_gpio(gpio_y_);
+    SysfsControl::unexport_gpio(gpio_x_);
+    SysfsControl::unexport_gpio(gpio_y_);
   }
 }
 
@@ -100,15 +95,15 @@ void trackNode::set_servo_angle(int axis, int err) {
   if (duty > max_duty_ns_) duty = max_duty_ns_;
   *duty_ptr = duty;
   if (use_hard_pwm_) {
-    sysfs_ctrl_.set_pwm_duty_cycle(pwm_chip_, pwm_channel, duty);
+    SysfsControl::set_pwm_duty_cycle(pwm_chip_, pwm_channel, duty);
   }
 }
 
 void trackNode::soft_pwm_loop(int gpio, int* duty_ns_ptr) {
   while (running_) {
-    sysfs_ctrl_.write_gpio(gpio, 1);
+    SysfsControl::write_gpio(gpio, 1);
     std::this_thread::sleep_for(std::chrono::nanoseconds(*duty_ns_ptr));
-    sysfs_ctrl_.write_gpio(gpio, 0);
+    SysfsControl::write_gpio(gpio, 0);
     std::this_thread::sleep_for(std::chrono::nanoseconds(pwm_period_ns_ - *duty_ns_ptr));
   }
 }
